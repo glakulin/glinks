@@ -1,10 +1,11 @@
 // Types
 type Color_Name = "gray" | "accent" | "info" | "error" | "success" | "warning";
-type Color_Shade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+type Color_Shade = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 type Color_Value = `#${string}`;
 type Color = Record<Color_Shade, Color_Value>;
 
 type Colors = Record<Color_Name, Color>;
+export type Colors_Name = `${Color_Name}_${Color_Shade}`;
 
 export const COLORS: Colors = {
   gray: {
@@ -75,3 +76,8 @@ export const COLORS: Colors = {
     "9": "#1A1500"
   }
 } as const satisfies Colors;
+
+export function get_color(colors_name: Colors_Name): Color_Value {
+  let [color_name, color_shade] = colors_name.split("_");
+  return COLORS[color_name as Color_Name][color_shade as Color_Shade];
+}

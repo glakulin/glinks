@@ -1,0 +1,6 @@
+/* Reset all styles */
+*:where(:not(svg):not(svg *)), *::after, *::before {
+  all: unset;
+  display: revert;
+  box-sizing: border-box;
+}

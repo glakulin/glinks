@@ -1,0 +1,1 @@
+export { Logo_Full } from "./Logo_Full";

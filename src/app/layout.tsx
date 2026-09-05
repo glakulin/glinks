@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import "./globals.css";
+import { COLORS } from "@/ui/tokens";
 
 export const metadata: Metadata = {
   title: "glinks",
@@ -8,7 +10,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body
+        style={{
+          backgroundColor: COLORS.gray[9]
+        }}
+      >
+        {children}
+      </body>
     </html>
   );
 }

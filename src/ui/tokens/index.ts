@@ -1,0 +1,1 @@
+export { COLORS, get_color, type Colors_Name } from "./colors";

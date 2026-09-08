@@ -37,8 +37,8 @@ export function Flex({
         flexWrap: wrap,
         alignItems: align,
         justifyContent: justify,
-        padding,
-        gap,
+        padding: padding,
+        gap: gap,
         ...css_object,
       }}
     >

@@ -1,30 +1,34 @@
 import { CSSProperties } from "react";
-import { Default_Props, Box} from ".";
+import { Default_Props, Box } from ".";
 import { Rem_Map } from "@/ui/tokens";
 
 // Interface
-interface Flex_Props extends Default_Props {
+interface Grid_Props extends Default_Props {
   inline?: boolean;
 
   padding?: Rem_Map;
   gap?: Rem_Map;
   radius?: Rem_Map;
-  
+
   align_items?: CSSProperties["alignItems"];
   align_content?: CSSProperties["alignContent"];
   justify_items?: CSSProperties["justifyItems"];
   justify_content?: CSSProperties["justifyContent"];
 
-  direction?: CSSProperties["flexDirection"];
-  wrap?: CSSProperties["flexWrap"];
+  templateColumns?: CSSProperties["gridTemplateColumns"];
+  templateRows?: CSSProperties["gridTemplateRows"];
+  templateAreas?: CSSProperties["gridTemplateAreas"];
+  autoFlow?: CSSProperties["gridAutoFlow"];
+  placeItems?: CSSProperties["placeItems"];
+  placeContent?: CSSProperties["placeContent"];
 }
 
 // Component
-export function Flex({
+export function Grid({
   children,
   tag,
   css: css_object,
-
+  
   inline = false,
 
   padding,
@@ -36,17 +40,21 @@ export function Flex({
   justify_items,
   justify_content,
 
-  direction = "row",
-  wrap = "nowrap",
-
+  templateColumns,
+  templateRows,
+  templateAreas,
+  autoFlow,
+  placeItems,
+  placeContent,
+  
   ...rest
-}: Flex_Props) {
+}: Grid_Props) {
   return (
     <Box
       tag={tag}
       {...rest}
       css={{
-        display: inline ? "inline-flex" : "flex",
+        display: inline ? "inline-grid" : "grid",
 
         padding: padding,
         gap: gap,
@@ -57,8 +65,12 @@ export function Flex({
         justifyItems: justify_items,
         justifyContent: justify_content,
 
-        flexDirection: direction,
-        flexWrap: wrap,
+        gridTemplateColumns: templateColumns,
+        gridTemplateRows: templateRows,
+        gridTemplateAreas: templateAreas,
+        gridAutoFlow: autoFlow,
+        placeItems: placeItems,
+        placeContent: placeContent,
         
         ...css_object,
       }}

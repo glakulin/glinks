@@ -5,6 +5,7 @@ export { Icon, type Icon_Name } from "./Icon";
 export { Text } from "./Text";
 export { Box } from "./Box";
 export { Flex } from "./Flex";
+export { Grid } from "./Grid";
 
 export interface Default_Props {
   css?: CSS_Object;

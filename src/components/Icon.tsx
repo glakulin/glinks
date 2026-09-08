@@ -1,4 +1,6 @@
 import { get_color, type Colors_Name } from "@/ui/tokens";
+import { Box } from "./Box";
+import { type CSS_Object } from "@/ui/css";
 
 
 // Types
@@ -11,18 +13,18 @@ interface Icon_Props {
   name: Icon_Name;
   size?: number;
   color?: Colors_Name;
+  css?: CSS_Object;
 }
 
 
 // Component
-export function Icon({ 
-  name, size, color 
-}: Icon_Props) {
+export function Icon({ name, size, color, css: css_object }: Icon_Props) {
   return (
-    <i className={`nf ${name}`} 
-      style={{ 
-        fontSize: size, 
-        color: color ? get_color(color) : undefined 
-      }} />
+    <Box tag="i" css={{
+      fontFamily: "'NerdFontsSymbols Nerd Font'",
+      fontSize: size,
+      color: color ? get_color(color) : undefined,
+      ...css_object
+    }} />
   );
 }

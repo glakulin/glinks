@@ -6,3 +6,7 @@
   display: revert;
   box-sizing: border-box;
 }
+
+:root {
+  font-size: 16px;
+}

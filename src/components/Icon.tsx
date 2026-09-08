@@ -18,13 +18,18 @@ interface Icon_Props {
 
 
 // Component
-export function Icon({ name, size, color, css: css_object }: Icon_Props) {
+export function Icon({ 
+  name, 
+  size, 
+  color, 
+  css: css_object,
+  ...rest 
+}: Icon_Props) {
   return (
-    <Box tag="i" css={{
-      fontFamily: "'NerdFontsSymbols Nerd Font'",
+    <Box tag="i" className={`nf ${name}`} css={{
       fontSize: size,
       color: color ? get_color(color) : undefined,
       ...css_object
-    }} />
+    }} {...rest}/>
   );
 }

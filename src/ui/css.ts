@@ -1,22 +1,23 @@
 // Atomic CSS engine: each "property: value" pair becomes a single class.
 // Identical pairs share one class, so no rule is ever generated or rendered twice.
 // Nesting: "&…" keys add pseudo selectors ("&:hover"), "@…" keys stack at-rules ("@media …").
+// Values: every number / number array is auto-converted to rem (unitless properties stay raw).
 
 import { cache } from "react";
 import type { CSSProperties } from "react";
-
+import { get_rem, map_rem, type Rem_Map } from "@/ui/tokens";
 
 // Types
-type CSS_Value = string | number | undefined; // undefined skips the property
+type CSS_Value = Rem_Map | string | undefined; // undefined skips the property; number | number[] → rem
 type CSS_Nested = { [key: `&${string}` | `@${string}`]: CSS_Object }; // "&" = the element itself
-export type CSS_Object = CSSProperties & { [key: `--${string}`]: CSS_Value } & CSS_Nested; // export type
+export type CSS_Object = {
+  [key in keyof CSSProperties]: CSSProperties[key] | CSS_Value; // every property also accepts number | number[]
+} & { [key: `--${string}`]: CSS_Value } & CSS_Nested; // export type
 
 // class_map — rule key (at-rule + selector + declaration) → class (dedupe cache); css_buffer — rules not yet rendered by Box
 type CSS_Store = { class_map: Map<string, string>; css_buffer: string[] };
 
 
-// Object
-const CSS_BASE = 16; // 1rem = 16px, the browser default html font size
 // Numbers become rem, except these CSS-unitless properties
 const CSS_UNITLESS = new Set([
   "animationIterationCount", "aspectRatio", "borderImageOutset", "borderImageSlice", "borderImageWidth",
@@ -42,11 +43,6 @@ export function get_hash(text: string): string {
   return hash.toString(36);
 }
 
-// 24 → "1.5rem"; toFixed(4) kills float noise, parseFloat trims trailing zeros
-function to_rem(value: number): string {
-  return `${parseFloat((value / CSS_BASE).toFixed(4))}rem`;
-}
-
 // Converts a css object into atomic class names; new declarations are buffered as CSS rules
 export function css(css_object: CSS_Object): string {
   let store = get_store();
@@ -61,9 +57,10 @@ export function css(css_object: CSS_Object): string {
 // everything else is a declaration and becomes one atomic class
 function emit_css(store: CSS_Store, css_object: CSS_Object, selector: string, at_rule: string, classes: string[]) {
   for (let [key, value] of Object.entries(css_object)) {
-    if (typeof value === "object") { // nested block
+    // Array.isArray first: typeof [] === "object", so arrays must not fall into the nesting branch
+    if (!Array.isArray(value) && typeof value === "object") { // nested block
       if (key.startsWith("@")) { // keep the selector, wrap everything one level deeper
-        emit_css(store, value as CSS_Object, selector, `${at_rule}{${key}`, classes);
+        emit_css(store, value as CSS_Object, selector, `${at_rule}${key}{`, classes);
       } else { // "&" in the key resolves to the selector built so far
         emit_css(store, value as CSS_Object, selector ? key.split("&").join(selector) : key, at_rule, classes);
       }
@@ -73,7 +70,11 @@ function emit_css(store: CSS_Store, css_object: CSS_Object, selector: string, at
 
     // camelCase → kebab-case; custom properties (--x) stay as is
     let css_property = key.startsWith("--") ? key : key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
-    let css_value = typeof value === "number" && !CSS_UNITLESS.has(key) ? to_rem(value) : `${value}`;
+    // number → get_rem, number[] → map_rem; unitless properties pass through untouched
+    let css_value = Array.isArray(value)
+      ? (CSS_UNITLESS.has(key) ? value.join(" ") : map_rem(value))
+      : typeof value === "number" && !CSS_UNITLESS.has(key) ? get_rem(value)
+      : `${value}`;
     let declaration = `${css_property}:${css_value}`;
     let rule_key = `${at_rule}|${selector}|${declaration}`;
     let css_class = store.class_map.get(rule_key);

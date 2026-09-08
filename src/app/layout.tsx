@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
-import { COLORS } from "@/ui/tokens";
+import { COLORS, get_screen_padding } from "@/ui/tokens";
+import { Flex } from "@/components";
 
 const font_body = IBM_Plex_Sans({
   subsets: ["cyrillic-ext", "latin-ext"],
@@ -41,7 +42,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           backgroundColor: COLORS.gray[9]
         }}
       >
-        {children}
+        <Flex tag="main"
+          css={{
+            ...get_screen_padding()
+          }}
+        >
+          {children}
+        </Flex>
       </body>
     </html>
   );

@@ -1,8 +1,8 @@
 // Types
-type Size = "default" | "xs" | "sm" | "md" | "lg" | "xl";
+export type Size = "default" | "xs" | "sm" | "md" | "lg" | "xl"; // export type
 type Size_Value = Record<Size, number>;
 type Group_Name = "screen" | "screen_padding";
-export type Sizes_Name = `${Group_Name}_${Size}`;
+export type Sizes_Name = `${Group_Name}_${Size}`; // export type
 
 type Sizes = Record<Group_Name, Size_Value>;
 

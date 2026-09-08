@@ -1,25 +1,34 @@
 import type { ReactNode } from "react";
-import { get_color, get_font, FONT_VARIABLE, type Colors_Name, type Font_Family, type Font_Size_Name } from "@/ui/tokens";
+import { get_color, get_font, FONT_VARIABLE, type Colors_Name, type Fonts_Name } from "@/ui/tokens";
 
 
 // Types
+type Text_Tag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "span";
+
 interface Text_Props {
-  family?: Font_Family;
-  size?: Font_Size_Name;
+  size?: Fonts_Name;
+  mono?: boolean;
   color?: Colors_Name;
+  tag?: Text_Tag;
   children: ReactNode;
 }
 
 
 // Component
-export function Text({ family = "body", size = "default", color, children }: Text_Props) {
-  let font = get_font(`${family}_${size}`);
+export function Text({ 
+  size = "body_default", 
+  mono = false, 
+  color, 
+  tag: Tag = "span", 
+  children 
+}: Text_Props) {
+  let font = get_font(size);
   return (
-    <span style={{
-      fontFamily: FONT_VARIABLE[family],
+    <Tag style={{
+      fontFamily: mono ? FONT_VARIABLE.mono : FONT_VARIABLE[font.family],
       fontSize: font.size,
       fontWeight: font.weight,
       color: color ? get_color(color) : undefined
-    }}>{children}</span>
+    }}>{children}</Tag>
   );
 }

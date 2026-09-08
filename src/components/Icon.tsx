@@ -15,6 +15,14 @@ interface Icon_Props {
 
 
 // Component
-export function Icon({ name, size, color }: Icon_Props) {
-  return (<i className={`nf ${name}`} style={{ fontSize: size, color: color ? get_color(color) : undefined }} />);
+export function Icon({ 
+  name, size, color 
+}: Icon_Props) {
+  return (
+    <i className={`nf ${name}`} 
+      style={{ 
+        fontSize: size, 
+        color: color ? get_color(color) : undefined 
+      }} />
+  );
 }

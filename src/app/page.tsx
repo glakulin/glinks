@@ -43,7 +43,8 @@ export default function Page() {
     <Flex
       direction="column"
       align_items="center"
-      css={{width: "100%", paddingBottom: 56}}
+      padding={[32, 0]}
+      css={{width: "100%"}}
       gap={56}
     >
       <Logo_Full />

@@ -1,24 +1,22 @@
 import { css, get_css, get_hash, type CSS_Object } from "@/ui/css";
-import type { ComponentPropsWithoutRef, JSX } from "react";
+import type { ComponentPropsWithoutRef, ElementType } from "react";
 import React from "react";
 
-
 // Types
-type Box_Props<T extends keyof JSX.IntrinsicElements = "div"> = {
+type Box_Props<T extends ElementType = "div"> = {
   tag?: T;
   css?: CSS_Object;
-} & Omit<ComponentPropsWithoutRef<T>, "css" | "tag">;
+} & ComponentPropsWithoutRef<T>;
 
 
 // Component
-// Polymorphic: passes every attribute of the chosen tag through, plus atomic css
-export function Box<T extends keyof JSX.IntrinsicElements = "div">({
+export function Box<T extends ElementType = "div">({
   tag = "div" as T,
   css: css_object,
   ...rest
 }: Box_Props<T>) {
   if (css_object === undefined) {
-    return React.createElement(tag, rest);
+    return React.createElement(tag as any, rest as any);
   }
 
   let class_name = css(css_object);
@@ -27,7 +25,10 @@ export function Box<T extends keyof JSX.IntrinsicElements = "div">({
   return (
     <>
       {css_text ? <style href={`#${get_hash(css_text)}`} precedence="atomic">{css_text}</style> : null}
-      {React.createElement(tag, { className: class_name || undefined, ...rest })}
+      {React.createElement(tag as any, {
+        ...(rest as any),
+        className: `${class_name} ${rest.className? rest.className : ""}` || undefined,
+      })}
     </>
   );
 }

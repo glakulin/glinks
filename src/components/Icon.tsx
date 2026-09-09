@@ -22,14 +22,17 @@ export function Icon({
   name, 
   size, 
   color, 
-  css: css_object,
+  css,
   ...rest 
 }: Icon_Props) {
   return (
-    <Box tag="i" className={`nf ${name}`} css={{
-      fontSize: size,
-      color: color ? get_color(color) : undefined,
-      ...css_object
-    }} {...rest}/>
+    <Box {...rest}
+      tag="i" 
+      className={`nf ${name} transition`} 
+      css={{
+        fontSize: size,
+        color: color ? get_color(color) : undefined,
+        ...css
+    }} ></Box>
   );
 }

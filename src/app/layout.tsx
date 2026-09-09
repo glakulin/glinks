@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
-import { COLORS, get_screen_padding } from "@/ui/tokens";
+import { get_color, get_screen_padding } from "@/ui/tokens";
 import { Flex } from "@/components";
 
 const font_body = IBM_Plex_Sans({
@@ -39,7 +39,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body
         className={`${font_body.variable} ${font_heading.variable} ${font_mono.variable}`}
         style={{
-          backgroundColor: COLORS.gray[9]
+          backgroundColor: get_color("gray_9"),
+          color: get_color("gray_1")
         }}
       >
         <Flex tag="main"

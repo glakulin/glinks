@@ -1,9 +1,9 @@
-import { CSSProperties } from "react";
+import { CSSProperties, ElementType } from "react";
 import { Default_Props, Box} from ".";
 import { Rem_Map } from "@/ui/tokens";
 
-// Interface
-interface Flex_Props extends Default_Props {
+// types
+interface Flex_Props_Base {
   inline?: boolean;
 
   padding?: Rem_Map;
@@ -19,11 +19,13 @@ interface Flex_Props extends Default_Props {
   wrap?: CSSProperties["flexWrap"];
 }
 
+type Flex_Props<T extends ElementType = "div"> = Flex_Props_Base & Default_Props<T>;
+
 // Component
-export function Flex({
+export function Flex<T extends ElementType = "div">({
   children,
-  tag,
-  css: css_object,
+  tag = "div" as T,
+  css,
 
   inline = false,
 
@@ -40,11 +42,10 @@ export function Flex({
   wrap = "nowrap",
 
   ...rest
-}: Flex_Props) {
+}: Flex_Props<T>) {
   return (
-    <Box
+    <Box {...(rest as any)}
       tag={tag}
-      {...rest}
       css={{
         display: inline ? "inline-flex" : "flex",
 
@@ -60,7 +61,7 @@ export function Flex({
         flexDirection: direction,
         flexWrap: wrap,
         
-        ...css_object,
+        ...css,
       }}
     >
       {children}

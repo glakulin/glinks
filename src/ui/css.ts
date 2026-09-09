@@ -1,6 +1,12 @@
 // Atomic CSS engine: each "property: value" pair becomes a single class.
 // Identical pairs share one class, so no rule is ever generated or rendered twice.
-// Nesting: "&…" keys add pseudo selectors ("&:hover"), "@…" keys stack at-rules ("@media …").
+// Nesting:
+//   "&…"  — own state ("&:hover", "&.active"); "&" resolves to the element itself,
+//   "@…"  — stack at-rules ("@media …", "@supports …"),
+//   other — child selectors ("> span", "+ .icon", "~ .item", "svg", ".child");
+//           "&" is implicit: "> span" ≡ "& > span", ".child" ≡ "& .child", "svg" ≡ "& svg".
+//           Selectors starting with a combinator or pseudo (">", "+", "~", ":", "[") attach
+//           directly; anything else becomes a descendant selector.
 // Values: every number / number array is auto-converted to rem (unitless properties stay raw).
 
 import { cache } from "react";
@@ -9,10 +15,15 @@ import { get_rem, map_rem, type Rem_Map } from "@/ui/tokens";
 
 // Types
 type CSS_Value = Rem_Map | string | undefined; // undefined skips the property; number | number[] → rem
-type CSS_Nested = { [key: `&${string}` | `@${string}`]: CSS_Object }; // "&" = the element itself
+type CSS_Nested = {
+  [key in `&${string}` | `@${string}`]: CSS_Object; // "&" = the element itself, "@" = at-rule
+} & {
+  // any other object-valued key is a child-element selector ("> span", ".child", "svg path", …)
+  [key: string]: CSS_Object | CSS_Value | undefined;
+};
 export type CSS_Object = {
   [key in keyof CSSProperties]: CSSProperties[key] | CSS_Value; // every property also accepts number | number[]
-} & { [key: `--${string}`]: CSS_Value } & CSS_Nested; // export type
+} & { [key: `--${string}`]: CSS_Value } & CSS_Nested;
 
 // class_map — rule key (at-rule + selector + declaration) → class (dedupe cache); css_buffer — rules not yet rendered by Box
 type CSS_Store = { class_map: Map<string, string>; css_buffer: string[] };
@@ -28,7 +39,6 @@ const CSS_UNITLESS = new Set([
 ]);
 
 
-// Function
 // One store per request: within a request all calls share it (declarations deduplicate),
 // the next request gets a fresh store, so every page renders its own full CSS
 const get_store = cache((): CSS_Store => ({ class_map: new Map(), css_buffer: [] }));
@@ -54,6 +64,7 @@ export function css(css_object: CSS_Object): string {
 // Walks the object recursively:
 // "&…" keys extend the selector (inner "&" resolves to the outer selector, like Sass),
 // "@…" keys stack at-rule wrappers ("@media …", "@supports …", "@container …"),
+// other object keys are child-element selectors with "&" implicit ("> span" ≡ "& > span"),
 // everything else is a declaration and becomes one atomic class
 function emit_css(store: CSS_Store, css_object: CSS_Object, selector: string, at_rule: string, classes: string[]) {
   for (let [key, value] of Object.entries(css_object)) {
@@ -61,8 +72,14 @@ function emit_css(store: CSS_Store, css_object: CSS_Object, selector: string, at
     if (!Array.isArray(value) && typeof value === "object") { // nested block
       if (key.startsWith("@")) { // keep the selector, wrap everything one level deeper
         emit_css(store, value as CSS_Object, selector, `${at_rule}${key}{`, classes);
-      } else { // "&" in the key resolves to the selector built so far
-        emit_css(store, value as CSS_Object, selector ? key.split("&").join(selector) : key, at_rule, classes);
+      } else {
+        // "&…" resolves "&" to the selector built so far; any other key is a child selector
+        // with "&" implicit, so the class always lands on the parent element:
+        // "> span" → "& > span", ":hover" → "&:hover", ".child" → "& .child", "svg" → "& svg"
+        let resolved = key.includes("&") ? key
+          : /^[>+~:[,]/.test(key) ? `&${key}` // combinator / pseudo / attribute / group list attaches directly
+          : `& ${key}`;                        // anything else is a descendant selector
+        emit_css(store, value as CSS_Object, selector ? resolved.split("&").join(selector) : resolved, at_rule, classes);
       }
       continue;
     }

@@ -1,9 +1,9 @@
-import { CSSProperties } from "react";
+import { CSSProperties, ElementType } from "react";
 import { Default_Props, Box } from ".";
 import { Rem_Map } from "@/ui/tokens";
 
-// Interface
-interface Grid_Props extends Default_Props {
+// types
+interface Grid_Props_Base {
   inline?: boolean;
 
   padding?: Rem_Map;
@@ -23,12 +23,14 @@ interface Grid_Props extends Default_Props {
   placeContent?: CSSProperties["placeContent"];
 }
 
+type Grid_Props<T extends ElementType = "div"> = Grid_Props_Base & Default_Props<T>;
+
 // Component
-export function Grid({
+export function Grid<T extends ElementType = "div">({
   children,
-  tag,
-  css: css_object,
-  
+  tag = "div" as T,
+  css,
+
   inline = false,
 
   padding,
@@ -46,13 +48,12 @@ export function Grid({
   autoFlow,
   placeItems,
   placeContent,
-  
+
   ...rest
-}: Grid_Props) {
+}: Grid_Props<T>) {
   return (
-    <Box
+    <Box {...(rest as any)}
       tag={tag}
-      {...rest}
       css={{
         display: inline ? "inline-grid" : "grid",
 
@@ -71,8 +72,8 @@ export function Grid({
         gridAutoFlow: autoFlow,
         placeItems: placeItems,
         placeContent: placeContent,
-        
-        ...css_object,
+
+        ...css,
       }}
     >
       {children}

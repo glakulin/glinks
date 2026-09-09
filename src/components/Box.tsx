@@ -1,34 +1,64 @@
-import { css, get_css, get_hash, type CSS_Object } from "@/ui/css";
-import type { ComponentPropsWithoutRef, ElementType } from "react";
+import {
+  css,
+  get_css,
+  type CSS_Object,
+} from "@/ui/css";
+
+import type {
+  ComponentPropsWithoutRef,
+  ElementType,
+} from "react";
+
 import React from "react";
 
-// Types
-type Box_Props<T extends ElementType = "div"> = {
+type Box_Props<
+  T extends ElementType = "div",
+> = {
   tag?: T;
   css?: CSS_Object;
 } & ComponentPropsWithoutRef<T>;
 
-
-// Component
-export function Box<T extends ElementType = "div">({
-  tag = "div" as T,
+export function Box<
+  T extends ElementType = "div",
+>({
+  tag,
   css: css_object,
+  className,
   ...rest
 }: Box_Props<T>) {
+  const Component = tag ?? "div";
+
   if (css_object === undefined) {
-    return React.createElement(tag as any, rest as any);
+    return React.createElement(
+      Component,
+      {
+        ...rest,
+        className,
+      },
+    );
   }
 
-  let class_name = css(css_object);
-  let css_text = get_css();
+  const class_name = css(css_object);
+  const css_text = get_css();
 
   return (
     <>
-      {css_text ? <style href={`#${get_hash(css_text)}`} precedence="atomic">{css_text}</style> : null}
-      {React.createElement(tag as any, {
-        ...(rest as any),
-        className: `${class_name} ${rest.className? rest.className : ""}` || undefined,
-      })}
+      {css_text ? (
+        <style precedence="atomic">
+          {css_text}
+        </style>
+      ) : null}
+
+      {React.createElement(
+        Component,
+        {
+          ...rest,
+          className:
+            [class_name, className]
+              .filter(Boolean)
+              .join(" ") || undefined,
+        },
+      )}
     </>
   );
 }

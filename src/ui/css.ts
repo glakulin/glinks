@@ -1,118 +1,507 @@
-// Atomic CSS engine: each "property: value" pair becomes a single class.
-// Identical pairs share one class, so no rule is ever generated or rendered twice.
-// Nesting:
-//   "&…"  — own state ("&:hover", "&.active"); "&" resolves to the element itself,
-//   "@…"  — stack at-rules ("@media …", "@supports …"),
-//   other — child selectors ("> span", "+ .icon", "~ .item", "svg", ".child");
-//           "&" is implicit: "> span" ≡ "& > span", ".child" ≡ "& .child", "svg" ≡ "& svg".
-//           Selectors starting with a combinator or pseudo (">", "+", "~", ":", "[") attach
-//           directly; anything else becomes a descendant selector.
-// Values: every number / number array is auto-converted to rem (unitless properties stay raw).
-
 import { cache } from "react";
 import type { CSSProperties } from "react";
-import { get_rem, map_rem, type Rem_Map } from "@/ui/tokens";
 
-// Types
-type CSS_Value = Rem_Map | string | undefined; // undefined skips the property; number | number[] → rem
-type CSS_Nested = {
-  [key in `&${string}` | `@${string}`]: CSS_Object; // "&" = the element itself, "@" = at-rule
-} & {
-  // any other object-valued key is a child-element selector ("> span", ".child", "svg path", …)
-  [key: string]: CSS_Object | CSS_Value | undefined;
-};
+import {
+  get_rem,
+  map_rem,
+  type Rem_Map,
+} from "./tokens";
+
+export type CSS_Value =
+  | Rem_Map
+  | string
+  | number
+  | number[]
+  | null
+  | undefined;
+
 export type CSS_Object = {
-  [key in keyof CSSProperties]: CSSProperties[key] | CSS_Value; // every property also accepts number | number[]
-} & { [key: `--${string}`]: CSS_Value } & CSS_Nested;
+  [K in keyof CSSProperties]?:
+    | CSSProperties[K]
+    | number
+    | number[]
+    | null;
+} & {
+  [key: `--${string}`]: CSS_Value;
+} & {
+  [key: string]: CSS_Value | CSS_Object;
+};
 
-// class_map — rule key (at-rule + selector + declaration) → class (dedupe cache); css_buffer — rules not yet rendered by Box
-type CSS_Store = { class_map: Map<string, string>; css_buffer: string[] };
+type CSS_Store = {
+  class_map: Map<string, string>;
+  class_rule_map: Map<string, string>;
+  css_buffer: string[];
+};
 
-
-// Numbers become rem, except these CSS-unitless properties
 const CSS_UNITLESS = new Set([
-  "animationIterationCount", "aspectRatio", "borderImageOutset", "borderImageSlice", "borderImageWidth",
-  "columnCount", "columns", "flex", "flexGrow", "flexPositive", "flexShrink", "flexNegative", "flexOrder",
-  "gridArea", "gridRow", "gridRowEnd", "gridRowSpan", "gridRowStart", "gridColumn", "gridColumnEnd", "gridColumnSpan", "gridColumnStart",
-  "fontWeight", "lineClamp", "lineHeight", "opacity", "order", "orphans", "scale", "tabSize", "widows", "zoom",
-  "zIndex", "fillOpacity", "floodOpacity", "stopOpacity", "strokeDasharray", "strokeDashoffset", "strokeMiterlimit", "strokeOpacity", "strokeWidth"
+  "animationIterationCount",
+  "aspectRatio",
+  "borderImageOutset",
+  "borderImageSlice",
+  "borderImageWidth",
+  "boxFlex",
+  "boxFlexGroup",
+  "boxOrdinalGroup",
+  "columnCount",
+  "columns",
+  "flex",
+  "flexGrow",
+  "flexPositive",
+  "flexShrink",
+  "flexNegative",
+  "flexOrder",
+  "fontWeight",
+  "gridArea",
+  "gridColumn",
+  "gridColumnEnd",
+  "gridColumnStart",
+  "gridRow",
+  "gridRowEnd",
+  "gridRowStart",
+  "lineClamp",
+  "lineHeight",
+  "opacity",
+  "order",
+  "orphans",
+  "scale",
+  "tabSize",
+  "widows",
+  "zoom",
+  "zIndex",
+  "fillOpacity",
+  "floodOpacity",
+  "stopOpacity",
+  "strokeDasharray",
+  "strokeDashoffset",
+  "strokeMiterlimit",
+  "strokeOpacity",
+  "strokeWidth",
 ]);
 
+const SUPPORTED_AT_RULES = [
+  "@media",
+  "@supports",
+  "@container",
+  "@layer",
+  "@scope",
+  "@starting-style",
+] as const;
 
-// One store per request: within a request all calls share it (declarations deduplicate),
-// the next request gets a fresh store, so every page renders its own full CSS
-const get_store = cache((): CSS_Store => ({ class_map: new Map(), css_buffer: [] }));
+type Supported_At_Rule =
+  (typeof SUPPORTED_AT_RULES)[number];
 
+const get_store = cache(
+  (): CSS_Store => ({
+    class_map: new Map(),
+    class_rule_map: new Map(),
+    css_buffer: [],
+  }),
+);
 
-// djb2 — fast string hash; base36 keeps names short
-export function get_hash(text: string): string {
+function get_hash(value: string): string {
   let hash = 5381;
-  for (let i = 0; i < text.length; i++) {
-    hash = ((hash * 33) ^ text.charCodeAt(i)) >>> 0;
+
+  for (let i = 0; i < value.length; i++) {
+    hash = ((hash << 5) + hash) ^ value.charCodeAt(i);
   }
-  return hash.toString(36);
+
+  return (hash >>> 0).toString(36);
 }
 
-// Converts a css object into atomic class names; new declarations are buffered as CSS rules
-export function css(css_object: CSS_Object): string {
-  let store = get_store();
-  let classes: string[] = [];
-  emit_css(store, css_object, "", "", classes);
-  return classes.join(" ");
+function to_css_property(property: string): string {
+  if (property.startsWith("--")) {
+    return property;
+  }
+
+  if (/^ms[A-Z]/.test(property)) {
+    property = `-${property}`;
+  }
+
+  return property.replace(
+    /[A-Z]/g,
+    (character) => `-${character.toLowerCase()}`,
+  );
 }
 
-// Walks the object recursively:
-// "&…" keys extend the selector (inner "&" resolves to the outer selector, like Sass),
-// "@…" keys stack at-rule wrappers ("@media …", "@supports …", "@container …"),
-// other object keys are child-element selectors with "&" implicit ("> span" ≡ "& > span"),
-// everything else is a declaration and becomes one atomic class
-function emit_css(store: CSS_Store, css_object: CSS_Object, selector: string, at_rule: string, classes: string[]) {
-  for (let [key, value] of Object.entries(css_object)) {
-    // Array.isArray first: typeof [] === "object", so arrays must not fall into the nesting branch
-    if (!Array.isArray(value) && typeof value === "object") { // nested block
-      if (key.startsWith("@")) { // keep the selector, wrap everything one level deeper
-        emit_css(store, value as CSS_Object, selector, `${at_rule}${key}{`, classes);
-      } else {
-        // "&…" resolves "&" to the selector built so far; any other key is a child selector
-        // with "&" implicit, so the class always lands on the parent element:
-        // "> span" → "& > span", ":hover" → "&:hover", ".child" → "& .child", "svg" → "& svg"
-        let resolved = key.includes("&") ? key
-          : /^[>+~:[,]/.test(key) ? `&${key}` // combinator / pseudo / attribute / group list attaches directly
-          : `& ${key}`;                        // anything else is a descendant selector
-        emit_css(store, value as CSS_Object, selector ? resolved.split("&").join(selector) : resolved, at_rule, classes);
-      }
+function is_unitless_property(property: string): boolean {
+  if (CSS_UNITLESS.has(property)) {
+    return true;
+  }
+
+  const vendor_match = property.match(
+    /^(Webkit|Moz|ms|O)(.+)$/,
+  );
+
+  return vendor_match
+    ? CSS_UNITLESS.has(vendor_match[2])
+    : false;
+}
+
+function is_nested_object(
+  value: unknown,
+): value is CSS_Object {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  );
+}
+
+function get_at_rule_name(
+  value: string,
+): Supported_At_Rule | undefined {
+  const match = value.match(/^@[a-z-]+(?=\s|$)/i);
+
+  if (match === null) {
+    return undefined;
+  }
+
+  const name = match[0].toLowerCase();
+
+  return SUPPORTED_AT_RULES.includes(
+    name as Supported_At_Rule,
+  )
+    ? (name as Supported_At_Rule)
+    : undefined;
+}
+
+function split_selector_list(
+  selector: string,
+): string[] {
+  const result: string[] = [];
+
+  let start = 0;
+  let parentheses = 0;
+  let brackets = 0;
+
+  let quote: "'" | '"' | null = null;
+  let escaped = false;
+
+  for (let i = 0; i < selector.length; i++) {
+    const character = selector[i];
+
+    if (escaped) {
+      escaped = false;
       continue;
     }
-    if (value === undefined) continue; // conditional styles
 
-    // camelCase → kebab-case; custom properties (--x) stay as is
-    let css_property = key.startsWith("--") ? key : key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
-    // number → get_rem, number[] → map_rem; unitless properties pass through untouched
-    let css_value = Array.isArray(value)
-      ? (CSS_UNITLESS.has(key) ? value.join(" ") : map_rem(value))
-      : typeof value === "number" && !CSS_UNITLESS.has(key) ? get_rem(value)
-      : `${value}`;
-    let declaration = `${css_property}:${css_value}`;
-    let rule_key = `${at_rule}|${selector}|${declaration}`;
-    let css_class = store.class_map.get(rule_key);
-
-    if (css_class === undefined) { // first time this at-rule + selector + declaration is seen
-      css_class = `a${get_hash(rule_key)}`;
-      store.class_map.set(rule_key, css_class);
-      // "&" in the final selector resolves to the class itself
-      let class_selector = selector ? selector.replace(/&/g, `.${css_class}`) : `.${css_class}`;
-      let at_close = at_rule ? "}".repeat((at_rule.match(/\{/g) || []).length) : "";
-      store.css_buffer.push(`${at_rule}${class_selector}{${declaration}}${at_close}`);
+    if (character === "\\") {
+      escaped = true;
+      continue;
     }
-    classes.push(css_class); // nested-only styles also need their class on the element
+
+    if (quote !== null) {
+      if (character === quote) {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (
+      character === "'" ||
+      character === '"'
+    ) {
+      quote = character;
+      continue;
+    }
+
+    if (character === "(") {
+      parentheses++;
+      continue;
+    }
+
+    if (character === ")") {
+      parentheses = Math.max(0, parentheses - 1);
+      continue;
+    }
+
+    if (character === "[") {
+      brackets++;
+      continue;
+    }
+
+    if (character === "]") {
+      brackets = Math.max(0, brackets - 1);
+      continue;
+    }
+
+    if (
+      character === "," &&
+      parentheses === 0 &&
+      brackets === 0
+    ) {
+      const part = selector
+        .slice(start, i)
+        .trim();
+
+      if (part) {
+        result.push(part);
+      }
+
+      start = i + 1;
+    }
   }
+
+  const last = selector
+    .slice(start)
+    .trim();
+
+  if (last) {
+    result.push(last);
+  }
+
+  return result;
 }
 
-// Flush: returns the buffered rules and clears the buffer,
-// so Box renders each rule exactly once via <style>
+function resolve_selector(
+  parent: string,
+  nested: string,
+): string {
+  const parents = parent
+    ? split_selector_list(parent)
+    : ["&"];
+
+  const nested_selectors =
+    split_selector_list(nested);
+
+  const result: string[] = [];
+
+  for (const parent_selector of parents) {
+    for (const nested_selector of nested_selectors) {
+      if (nested_selector.includes("&")) {
+        result.push(
+          nested_selector.replaceAll(
+            "&",
+            parent_selector,
+          ),
+        );
+
+        continue;
+      }
+
+      if (/^[>+~:[(]/.test(nested_selector)) {
+        result.push(
+          `${parent_selector}${nested_selector}`,
+        );
+
+        continue;
+      }
+
+      result.push(
+        `${parent_selector} ${nested_selector}`,
+      );
+    }
+  }
+
+  return result.join(", ");
+}
+
+function format_value(
+  property: string,
+  value: CSS_Value,
+): string | undefined {
+  if (value == null) {
+    return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    if (is_unitless_property(property)) {
+      return value.join(" ");
+    }
+
+    return map_rem(value);
+  }
+
+  if (typeof value === "number") {
+    if (is_unitless_property(property)) {
+      return String(value);
+    }
+
+    return get_rem(value);
+  }
+
+  return String(value);
+}
+
+function emit_declaration(
+  store: CSS_Store,
+  selector: string,
+  at_rules: string[],
+  property: string,
+  value: CSS_Value,
+): string {
+  const css_property =
+    to_css_property(property);
+
+  const css_value =
+    format_value(property, value);
+
+  if (css_value === undefined) {
+    return "";
+  }
+
+  const declaration =
+    `${css_property}:${css_value}`;
+
+  const rule_key = [
+    at_rules.join("|"),
+    selector,
+    declaration,
+  ].join("|");
+
+  const hash = get_hash(rule_key);
+  const class_name = `a${hash}`;
+
+  const previous_rule =
+    store.class_rule_map.get(class_name);
+
+  if (
+    previous_rule !== undefined &&
+    previous_rule !== rule_key
+  ) {
+    throw new Error(
+      `CSS hash collision: ${class_name}`,
+    );
+  }
+
+  store.class_rule_map.set(
+    class_name,
+    rule_key,
+  );
+
+  const existing_class =
+    store.class_map.get(rule_key);
+
+  if (existing_class !== undefined) {
+    return existing_class;
+  }
+
+  store.class_map.set(
+    rule_key,
+    class_name,
+  );
+
+  const class_selector = selector
+    ? selector.replaceAll(
+        "&",
+        `.${class_name}`,
+      )
+    : `.${class_name}`;
+
+  let rule =
+    `${class_selector}{${declaration}}`;
+
+  for (
+    let i = at_rules.length - 1;
+    i >= 0;
+    i--
+  ) {
+    rule = `${at_rules[i]}{${rule}}`;
+  }
+
+  store.css_buffer.push(rule);
+
+  return class_name;
+}
+
+function emit_css(
+  store: CSS_Store,
+  css_object: CSS_Object,
+  parent_selector = "",
+  at_rules: string[] = [],
+): string[] {
+  const classes: string[] = [];
+
+  for (const [key, value] of Object.entries(
+    css_object,
+  )) {
+    if (value == null) {
+      continue;
+    }
+
+    if (key.startsWith("@")) {
+      const at_rule_name =
+        get_at_rule_name(key);
+
+      if (at_rule_name === undefined) {
+        throw new Error(
+          `Unsupported at-rule: ${key}`,
+        );
+      }
+
+      if (!is_nested_object(value)) {
+        throw new Error(
+          `At-rule must contain a CSS object: ${key}`,
+        );
+      }
+
+      classes.push(
+        ...emit_css(
+          store,
+          value,
+          parent_selector,
+          [...at_rules, key],
+        ),
+      );
+
+      continue;
+    }
+
+    if (is_nested_object(value)) {
+      const selector =
+        resolve_selector(
+          parent_selector,
+          key,
+        );
+
+      classes.push(
+        ...emit_css(
+          store,
+          value,
+          selector,
+          at_rules,
+        ),
+      );
+
+      continue;
+    }
+
+    const class_name =
+      emit_declaration(
+        store,
+        parent_selector,
+        at_rules,
+        key,
+        value,
+      );
+
+    if (class_name) {
+      classes.push(class_name);
+    }
+  }
+
+  return classes;
+}
+
+export function css(
+  css_object: CSS_Object,
+): string {
+  const store = get_store();
+
+  return emit_css(
+    store,
+    css_object,
+  ).join(" ");
+}
+
 export function get_css(): string {
-  let store = get_store();
-  let css_text = store.css_buffer.join("");
-  store.css_buffer = [];
+  const store = get_store();
+
+  const css_text =
+    store.css_buffer.join("");
+
+  store.css_buffer.length = 0;
+
   return css_text;
 }

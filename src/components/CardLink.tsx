@@ -36,8 +36,7 @@ export function CardLink({
           "i": {
             color: "var(--color-hover)",
             fontSize: 72,
-            top: 10,
-            animation: "buble 1s linear infinite",
+            top: 10
           }
         },
         "&:active": {

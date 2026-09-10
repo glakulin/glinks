@@ -1,10 +1,12 @@
 import { Icon_Name } from "./components";
 
-export const LINKS: {
+export type Links_Item = {
   name: string,
   icon: Icon_Name,
   href: string
-}[] = [
+}
+
+export const LINKS: Links_Item[] = [
   {
     name: "Telegram",
     icon: "nf-fa-telegram",

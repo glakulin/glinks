@@ -1,16 +1,16 @@
-import { CardLink } from "@/components";
+import { CardLinkWin95 } from "@/components";
 import { LINKS } from "@/links";
 
 export default function Page() {
   return (<>
     {LINKS.map((link) =>
-      <CardLink
+      <CardLinkWin95
         key={link.name}
         icon={link.icon}
         href={link.href}
       >
         {link.name}
-      </CardLink>
+      </CardLinkWin95>
     )}
   </>);
 }

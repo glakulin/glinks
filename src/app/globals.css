@@ -19,32 +19,3 @@ html {
 .transition {
   transition: all .333s ease-out;
 }
-
-
-/* Animations */
-@keyframes buble {
-  0%     { transform: translate(2px, 0px)   rotateX(0deg)   rotateY(20deg); }
-  6.25%  { transform: translate(1.8px, 0.8px) rotateX(9.6deg) rotateY(18.5deg); }
-  12.5%  { transform: translate(1.4px, 1.4px) rotateX(17.7deg) rotateY(14.1deg); }
-  18.75% { transform: translate(0.8px, 1.8px) rotateX(23.1deg) rotateY(7.7deg); }
-  25%    { transform: translate(0px, 2px)   rotateX(25deg)  rotateY(0deg); }
-  31.25% { transform: translate(-0.8px, 1.8px) rotateX(23.1deg) rotateY(-7.7deg); }
-  37.5%  { transform: translate(-1.4px, 1.4px) rotateX(17.7deg) rotateY(-14.1deg); }
-  43.75% { transform: translate(-1.8px, 0.8px) rotateX(9.6deg) rotateY(-18.5deg); }
-  50%    { transform: translate(-2px, 0px)  rotateX(0deg)   rotateY(-20deg); }
-  56.25% { transform: translate(-1.8px, -0.8px) rotateX(-9.6deg) rotateY(-18.5deg); }
-  62.5%  { transform: translate(-1.4px, -1.4px) rotateX(-17.7deg) rotateY(-14.1deg); }
-  68.75% { transform: translate(-0.8px, -1.8px) rotateX(-23.1deg) rotateY(-7.7deg); }
-  75%    { transform: translate(0px, -2px)  rotateX(-25deg)  rotateY(0deg); }
-  81.25% { transform: translate(0.8px, -1.8px) rotateX(-23.1deg) rotateY(7.7deg); }
-  87.5%  { transform: translate(1.4px, -1.4px) rotateX(-17.7deg) rotateY(14.1deg); }
-  93.75% { transform: translate(1.8px, -0.8px) rotateX(-9.6deg) rotateY(18.5deg); }
-  100%   { transform: translate(2px, 0px)   rotateX(0deg)   rotateY(20deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none;
-    animation: none;
-  }
-}

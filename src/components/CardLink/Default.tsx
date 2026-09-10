@@ -1,12 +1,7 @@
 import Link from "next/link";
-import { Flex, Default_Props, Icon, Icon_Name, Text } from ".";
+import { Flex, Icon, Text } from "..";
 import { get_color } from "@/ui/tokens";
-
-// Interface
-type CardLink_Props = {
-  icon: Icon_Name;
-  href: string;
-} & Default_Props<typeof Link>;
+import { CardLink_Props, strip_href } from ".";
 
 // Component
 export function CardLink({
@@ -22,6 +17,7 @@ export function CardLink({
       tag={Link}
       href={href}
       target="_blank"
+      rel="noopener noreferrer"
       align_items="center"
       padding={12}
       css={{
@@ -36,18 +32,19 @@ export function CardLink({
           "i": {
             color: "var(--color-hover)",
             fontSize: 72,
-            top: 10,
-            animation: "buble 1s linear infinite",
+            top: 10
           }
         },
         "&:active": {
           backgroundColor: get_color("gray_1")
-        }
+        },
+
+        ...css
       }}
     >
       <Flex direction="column" gap={12}>
         <Text size="heading_default" >{children}</Text>
-        <Text size="body_xs" mono color="gray_8">{href.replace(/^(https?:\/\/)?(www\.)?(mailto:)?/, "")}</Text>
+        <Text size="body_xs" mono color="gray_8">{strip_href(href)}</Text>
       </Flex>
       <Icon color="gray_8" css={{position: "absolute", right: 12, top: 8}} name={icon} size={40} />
     </Flex>

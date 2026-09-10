@@ -1,16 +1,16 @@
-import { CardLink } from "@/components";
+import { CardLinkMinecraft } from "@/components";
 import { LINKS } from "@/links";
 
 export default function Page() {
   return (<>
     {LINKS.map((link) =>
-      <CardLink
+      <CardLinkMinecraft
         key={link.name}
         icon={link.icon}
         href={link.href}
       >
         {link.name}
-      </CardLink>
+      </CardLinkMinecraft>
     )}
   </>);
 }

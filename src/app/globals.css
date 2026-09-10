@@ -19,10 +19,3 @@ html {
 .transition {
   transition: all .333s ease-out;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none;
-    animation: none;
-  }
-}

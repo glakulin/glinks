@@ -37,6 +37,19 @@ function is_style_variant(value: string | undefined): value is Style_Variant {
   return STYLE_VARIANTS.some((item) => item.value === value);
 }
 
+function shuffle(array) {
+  let currentIndex = array.length;
+
+  while (currentIndex != 0) {
+
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+}
+
 const link_style: CSS_Object = {
   cursor: "pointer",
   "&:hover": {
@@ -57,6 +70,8 @@ export default async function Page({
     : "default";
 
   const Card = CARDS[active];
+
+  shuffle(STYLE_VARIANTS);
 
   return (
     <Flex

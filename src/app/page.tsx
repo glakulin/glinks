@@ -37,17 +37,21 @@ function is_style_variant(value: string | undefined): value is Style_Variant {
   return STYLE_VARIANTS.some((item) => item.value === value);
 }
 
-function shuffle(array) {
-  let currentIndex = array.length;
+function shuffle<T>(array: readonly T[]): T[] {
+  const result = [...array];
+  let currentIndex = result.length;
 
-  while (currentIndex != 0) {
-
-    let randomIndex = Math.floor(Math.random() * currentIndex);
+  while (currentIndex !== 0) {
+    const randomIndex = Math.floor(Math.random() * currentIndex);
     currentIndex--;
 
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
+    [result[currentIndex], result[randomIndex]] = [
+      result[randomIndex],
+      result[currentIndex],
+    ];
   }
+
+  return result;
 }
 
 const link_style: CSS_Object = {
@@ -71,8 +75,6 @@ export default async function Page({
 
   const Card = CARDS[active];
 
-  shuffle(STYLE_VARIANTS);
-
   return (
     <Flex
       direction="column"
@@ -84,7 +86,7 @@ export default async function Page({
       <Logo_Full />
 
       <Flex gap={20}>
-        {STYLE_VARIANTS.map((item) => {
+        {shuffle(STYLE_VARIANTS).map((item) => {
           const is_active = item.value === active;
 
           return (

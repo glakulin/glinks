@@ -37,23 +37,6 @@ function is_style_variant(value: string | undefined): value is Style_Variant {
   return STYLE_VARIANTS.some((item) => item.value === value);
 }
 
-function shuffle<T>(array: readonly T[]): T[] {
-  const result = [...array];
-  let currentIndex = result.length;
-
-  while (currentIndex !== 0) {
-    const randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-
-    [result[currentIndex], result[randomIndex]] = [
-      result[randomIndex],
-      result[currentIndex],
-    ];
-  }
-
-  return result;
-}
-
 const link_style: CSS_Object = {
   cursor: "pointer",
   "&:hover": {
@@ -86,7 +69,7 @@ export default async function Page({
       <Logo_Full />
 
       <Flex gap={20}>
-        {shuffle(STYLE_VARIANTS).map((item) => {
+        {STYLE_VARIANTS.map((item) => {
           const is_active = item.value === active;
 
           return (

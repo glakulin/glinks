@@ -42,4 +42,9 @@ export const LINKS: Links_Item[] = [
     icon: "nf-md-at",
     href: "mailto:glakulin@yandex.ru"
   },
+  {
+    name: "DonateX",
+    icon: "nf-fa-hand_holding_dollar",
+    href: "https://donatex.gg/donate/glakulin"
+  }
 ];

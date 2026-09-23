@@ -33,11 +33,6 @@ export const LINKS: Links_Item[] = [
     href: "https://github.com/glakulin"
   },
   {
-    name: "My site",
-    icon: "nf-fa-globe",
-    href: "https://glakulin.vercel.app"
-  },
-  {
     name: "Email",
     icon: "nf-md-at",
     href: "mailto:glakulin@yandex.ru"

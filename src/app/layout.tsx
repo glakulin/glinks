@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Montserrat_Alternates } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
 import { get_color, get_screen_padding } from "@/ui/tokens";
 import { Flex } from "@/components";
@@ -20,7 +20,7 @@ const font_mono = IBM_Plex_Mono({
   variable: "--font-mono"
 }); 
 
-const font_heading = Montserrat_Alternates({
+const font_heading = IBM_Plex_Serif({
   subsets: ["cyrillic-ext", "latin-ext"],
   weight: ["500", "600", "700"],
   style: ["normal", "italic"],
